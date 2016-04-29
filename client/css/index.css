@@ -1,0 +1,77 @@
+/*html, body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}*/
+
+html, body {
+	background: #2B2A2A;
+    color: #8E8787;
+}
+
+#map {
+	width: 100%;
+	height: 600px;
+}
+
+#weather_status1 p, #weather_status2 p {
+	display: inline;
+}
+
+.atk_btn, .hack_btn {
+	width: 54px;
+    float: left;
+    cursor: pointer;
+}
+
+.atk_btn {
+	margin-left: 54px;
+    margin-right: 68px;
+}
+
+.enemy_pop {
+	width: 280px;
+	height: 56px;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+	background-color: #545353;
+}
+
+.portal_detail {
+	color: black;
+	display: none;
+}
+
+.portal_detail table {
+	width: 100%;
+}
+
+.sunny_btn, .rainy_btn, .cloudy_btn, 
+.snow_btn, .thunder_btn, .satelite_btn {
+	width: 42px;
+	cursor: pointer;
+}
+
+.heal_btn, .energy_btn {
+	width: 54px;
+    float: left;
+    cursor: pointer;
+}
+
+.ally_pop .command {
+	width: 150px;
+    height: 56px;
+}
+
+.heal_btn {
+	margin-left: 14px;
+    margin-right: 16px;
+}
+
+#fullmoon {
+	width: 100px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}

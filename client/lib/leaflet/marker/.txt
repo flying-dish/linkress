@@ -1,0 +1,5 @@
+L.icon({
+  iconUrl: '//114.160.9.233/matsumoto/library/leaflet/marker/marker-icon.png',
+  shadowUrl: '//114.160.9.233/matsumoto/library/leaflet/marker/marker-shadow.png',
+  iconAnchor: [12.5, 40]
+});

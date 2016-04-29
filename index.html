@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>spaceapp</title>
+<!-- CSS -->
+<link rel="stylesheet" href="./client/lib/bootstrap/3.1.1-dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="./client/lib/bootstrap/3.1.1-dist/css/bootstrap-theme.min.css" />
+<link rel="stylesheet" href="./client/lib/leaflet/0.7.3/leaflet.css" />
+<link rel="stylesheet" href="./client/css/index.css" />
+<link rel="stylesheet" href="./client/css/progressbar.css" />
+<link type="text/css" rel="stylesheet"
+  href="http://code.jquery.com/ui/1.10.3/themes/cupertino/jquery-ui.min.css" />
+<!-- JS -->
+<script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script>
+
+<script src="./client/lib/leaflet/0.7.3/leaflet.js"></script>
+<script src="./client/lib/bootstrap/3.1.1-dist/js/bootstrap.js"></script>
+<script src="./client/js/util.js"></script>
+<script src="./client/js/atk.js"></script>
+
+<script type="text/javascript">
+
+global = {};
+global.atkPoint = 5;
+global.healPoint = 3;
+global.hackPoint = 10;
+global.energyPoint = 10;
+global.eiseiPoint = 30;
+
+map = null;
+
+ICON_URL = './client/lib/leaflet/marker';
+
+userMarker = null;
+
+userIcon = L.icon({
+    iconUrl: ICON_URL + '/marker-icon-red.png',
+    iconUrl: './client/img/person.png',
+    shadowUrl: ICON_URL + '/marker-shadow.png',
+    iconAnchor: [72, 100]
+});
+
+greenIcon = L.icon({
+    iconUrl: ICON_URL + '/marker-icon-green.png',
+    iconUrl: './client/img/green_portal.gif',
+    shadowUrl: ICON_URL + '/marker-shadow.png',
+    iconSize: [84, 84],
+    popupAnchor: [0, -32]
+});
+
+blueIcon = L.icon({
+    iconUrl: ICON_URL + '/marker-icon.png',
+    iconUrl: './client/img/blue_portal.gif',
+    shadowUrl: ICON_URL + '/marker-shadow.png',
+    iconSize: [84, 84],
+    popupAnchor: [0, -32],
+});
+
+eiseiIcon = L.icon({
+    iconUrl: ICON_URL + '/marker-icon.png',
+    iconUrl: './client/img/eisei.gif',
+    shadowUrl: ICON_URL + '/marker-shadow.png',
+    iconSize: [84, 84],
+});
+
+userData = {
+	id: 1,
+	lat: 35.681382, 
+	lng: 139.736084
+};
+
+allyData = [
+	{id:0, lat:35.681382, lng:139.766084, point: 1564},
+	{id:1, lat:35.671382, lng:139.756084, point: 84},
+	{id:2, lat:35.651382, lng:139.730084, point: 18},
+]
+
+eiseiData = [
+	{id:10, lat:35.696382, lng:139.796084},
+	{id:11, lat:35.6382, lng:139.789084}
+]
+
+enemyData = [
+	{id:3, lat:35.681382, lng:139.706084, point: 10, name:'portal1'},
+	{id:4, lat:35.671382, lng:139.706084, point: 458, name:'portal2'},
+	{id:5, lat:35.651382, lng:139.700084, point: 124, name:'portal3'},
+]
+
+allyMarker = {};
+enemyMarker = {};
+eiseiMarker = {};
+
+var func_eisei = function() {$.getJSON("./server/get_portals.php?lat=34.994829&lon=135.785046&distance=10000000&limit=20" , function(data) {
+      var len = data.length;
+      eiseiData = [
+        {id:10, lat:35.696382, lng:139.796084},
+        {id:11, lat:35.6382, lng:139.789084}
+      ]
+      for(var i = 0; i < len; i++) {
+        eiseiData.push({"id":data[i].id, "lat":data[i].lat, "lng":data[i].lon});
+      }
+    });
+  };
+
+
+$(function() { 
+
+	var getparams = GetQueryString();
+	debug = 'debug' in getparams ? getparams.debug : 0;
+
+    $.ajaxSetup({ async: false });
+    func_eisei();
+    $.ajaxSetup({ async: true });
+
+	map = L.map('map').setView([35.681382, 139.766084], 13);
+
+	// L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw', {
+	// 	maxZoom: 18,
+	// 	attribution: '',
+	// 	id: 'mapbox.streets'
+	// }).addTo(map);
+
+	L.tileLayer('https://api.mapbox.com/styles/v1/flyingdish/cindyv1yx014ad5m3oxt020ui/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiZmx5aW5nZGlzaCIsImEiOiJjaW5kYmloZ2owd3l1dmZrcXh2N3JqbjFyIn0.z9_jwTax6jE98-KC6lr3lg', {
+		maxZoom: 18,
+		attribution: '',
+		id: 'mapbox.flyingdish.Dark'
+	}).addTo(map);
+
+// var CartoDB_DarkMatter = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+// 	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+// 	subdomains: 'abcd',
+// 	maxZoom: 19
+// }).addTo(map);
+
+	userMarker = L.marker(
+		[userData.lat, userData.lng], {icon: userIcon}
+	).addTo(map);
+
+	// L.marker([35.681382, 139.736084]).addTo(map);
+
+	eiseiData.forEach(function(e) {
+		var m = L.marker([e.lat, e.lng], {icon: eiseiIcon})
+			.on('click', function(e) {
+				if(this.clickFlg) {
+					return;
+				}
+				this.clickFlg = true;
+					var offset = $(eiseiMarker[this.id]._icon).offset(),
+						$effect = $('#effect');
+					$effect.show();
+					$effect.attr({'src': './client/img/hack.gif'}); 
+					$effect.css({'left':offset.left - 50, 'top': offset.top - 70});
+					setTimeout(function() { 
+						$effect.hide();
+						$effect.attr({'src': './client/img/null.gif'}); 
+					}, 1000);
+				changePoint('#user_satelite p', global.eiseiPoint);
+			})
+			.addTo(map);
+		m.id = e.id;
+		m.clickFlg = false;
+		eiseiMarker[e.id] = m;
+	});
+
+	
+
+
+	allyData.forEach(function(e) {
+		var m = L.marker([e.lat, e.lng], {icon: greenIcon})
+			.on('click', function(e) {			
+				var id = this.id,
+					userLatlng = userMarker.getLatLng(),
+					tgtLatlng = this.getLatLng(),
+					distance = latlngDistance(
+						userLatlng.lat, userLatlng.lng,
+						tgtLatlng.lat, tgtLatlng.lng);
+				if(distance >= 3) {
+					$('.ally_pop' + this.id + ' .command').hide();
+					$('.ally_pop' + this.id).html('distance error');
+					return;
+				}
+				$.ajax({
+					url: './server/weather.php',
+					data: {
+						lat: tgtLatlng.lat, lng: tgtLatlng.lng
+					},
+					dataType: 'json',
+					success: function(data) {
+						if('observation' in data) {
+							$('.ally_pop' + id).find('.weather').val(data.observation.phrase_32char);
+						}
+					}
+				});
+			})
+			.addTo(map);
+		m.id = e.id;
+		bindAllyPop(e, m);
+		allyMarker[e.id] = m;
+	});
+
+	enemyData.forEach(function(e) {
+		var m = L.marker([e.lat, e.lng], {icon: blueIcon})
+			.on('click', function(e) {
+				var id = this.id,
+					userLatlng = userMarker.getLatLng(),
+					tgtLatlng = this.getLatLng(),
+					distance = latlngDistance(
+						userLatlng.lat, userLatlng.lng,
+						tgtLatlng.lat, tgtLatlng.lng);
+				if(distance >= 3) {
+					console.log($('.enemy_pop' + id).find('.distance'));
+					enemyMarker[id].distance = distance;
+					return;
+				}
+				$.ajax({
+					url: './server/weather.php',
+					data: {
+						lat: tgtLatlng.lat, lng: tgtLatlng.lng
+					},
+					dataType: 'json',
+					success: function(data) {
+						if('observation' in data) {
+							$('.enemy_pop' + id).find('.weather').val(data.observation.phrase_32char);
+						}
+					}
+				});
+			})
+			.addTo(map);
+		m.id = e.id;
+		bindEnemyPop(e, m);
+		enemyMarker[e.id] = m;
+	});
+
+	if(debug == 1) {
+		$('.leaflet-top.leaflet-right').append(
+			'<img id="fullmoon" src="./client/img/fullmoon.png">'
+		);
+	} else {
+		$.ajax({
+			url: './server/weather.php',
+			data: {
+				lat: userData.lat, lng: userData.lng
+			},
+			dataType: 'json',
+			success: function(data) {
+				if('observation' in data &&
+					data.observation.phrase_32char.indexOf('fullmoon') >= 0) {
+					$('.leaflet-top.leaflet-right').append(
+						'<img id="fullmoon" src="./client/img/fullmoon.png">'
+					);
+				}
+			}
+		});
+	}
+
+
+	$(".meter > span").each(function() {
+		$(this)
+			.data("origWidth", $(this).width())
+			.width(0)
+			.animate({
+				width: $(this).data("origWidth")
+			}, 1200);
+	});
+
+
+});
+
+
+/**
+ * detail_btn click
+ */
+$(document).on('click', '.detail_btn', function() {
+	$('.enemy_pop' + getId(this, '.enemy_pop') + ' div').load(
+		'./client/html/detail.html', null, function() {
+		// onload
+	});
+});
+
+/**
+ * hack_btn click
+ */
+$(document).on('click', '.hack_btn', function() {
+	$('input').prop("disabled", true);
+	var id = getId(this, '.enemy_pop'),
+		offset = $(enemyMarker[id]._icon).offset(),
+		$effect = $('#effect');
+	$effect.show();
+	$effect.attr({'src': './client/img/hack.gif'}); 
+	$effect.css({'left':offset.left - 20, 'top': offset.top - 20});
+	setTimeout(function() { 
+		$effect.hide();
+		$effect.attr({'src': './client/img/null.gif'}); 
+		$('input').prop("disabled", false);
+		$('.hack_btn').prop("disabled", true);
+	}, 1000);
+
+	var weather = $('.enemy_pop' + id).find('.weather').val();
+	if(weather.indexOf('rain') >= 0 || weather.indexOf('Rain') >= 0) {
+		changePoint('#user_rainy p', global.energyPoint);
+	} else if(weather.indexOf('snow') >= 0 || weather.indexOf('Snow') >= 0) {
+		changePoint('#user_snow p', global.energyPoint);
+	} else if(weather.indexOf('cloud') >= 0 || weather.indexOf('Cloud') >= 0) {
+		changePoint('#user_cloudy p', global.energyPoint);
+	} else if(weather.indexOf('thunder') >= 0 || weather.indexOf('Thunder') >= 0) {
+		changePoint('#user_thunder p', global.energyPoint);
+	} else {
+		changePoint('#user_sunny p', global.energyPoint);
+	}
+});
+
+
+/**
+ * energy_btn click
+ */
+$(document).on('click', '.energy_btn', function() {
+	$('input').prop("disabled", true);
+	var id = getId(this, '.ally_pop'),
+		offset = $(allyMarker[id]._icon).offset(),
+		$effect = $('#effect');
+	$effect.show();
+	$effect.attr({'src': './client/img/energy.gif'}); 
+	$effect.css({'left':offset.left - 20, 'top': offset.top - 20});
+	setTimeout(function() { 
+		$effect.hide();
+		$effect.attr({'src': './client/img/null.gif'}); 
+		$('input').prop("disabled", false);
+		$('.energy_btn').prop("disabled", true);
+	}, 1000);
+
+	var weather = $('.ally_pop' + id).find('.weather').val();
+	if(weather.indexOf('rain') >= 0 || weather.indexOf('Rain') >= 0) {
+		changePoint('#user_rainy p', global.energyPoint);
+	} else if(weather.indexOf('snow') >= 0 || weather.indexOf('Snow') >= 0) {
+		changePoint('#user_snow p', global.energyPoint);
+	} else if(weather.indexOf('cloud') >= 0 || weather.indexOf('Cloud') >= 0) {
+		changePoint('#user_cloudy p', global.energyPoint);
+	} else if(weather.indexOf('thunder') >= 0 || weather.indexOf('Thunder') >= 0) {
+		changePoint('#user_thunder p', global.energyPoint);
+	} else {
+		changePoint('#user_sunny p', global.energyPoint);
+	}
+});
+
+/**
+ * heal_btn click
+ */
+$(document).on('click', '.heal_btn', function() {
+	var id = getId(this, '.ally_pop'),
+		offset = $(allyMarker[id]._icon).offset(),
+		$score = $('#score'),
+		$score = $('#score').text(5),
+		$effect = $('#effect');
+	$score.show();
+	$score.css({'color': 'green', 'left':offset.left - 30, 'top': offset.top + 20});
+	$score.hide(2000);
+	$effect.show();
+	$effect.attr({'src': './client/img/heal.gif'}); 
+	$effect.css({'left':offset.left - 20, 'top': offset.top - 20});
+	setTimeout(function() { 
+		$effect.hide();
+		$effect.attr({'src': './client/img/null.gif'}); 
+		$('input').prop("disabled", false);
+	}, 1000);
+
+	heal = function(kind) {
+		var point = parseInt($('#user_' + kind + ' p').text()),
+			subPoint = global.healPoint;
+		if(point < global.healPoint) {
+			subPoint = point;
+		} 
+		console.log(subPoint);
+		changePoint('#user_' + kind + ' p', -1 * subPoint);
+		return subPoint;
+	};
+
+	var portalPoint = 0;
+	portalPoint += heal('sunny');
+	portalPoint += heal('cloudy');
+	portalPoint += heal('rainy');
+	portalPoint += heal('snow');
+	portalPoint += heal('thunder');
+	changePoint('.ally_pop' + id + ' .portal_point', portalPoint);
+});
+
+/**
+ * def_btn click
+ */
+$(document).on('click', '.def_btn', function() {
+	$('.ally_pop' + getId(this, '.ally_pop') + ' div').load(
+		'./client/html/def.html', null, function() {
+		// onload
+	});
+});
+
+bindAllyPop = function(portal, marker) {
+	marker.bindPopup(
+		  '<div class="ally_pop ally_pop' + portal.id + '">'
+		+ '<div class="portal_detail">'
+		+ '<table>'
+		+ '<tr>'
+		+ '<td>' + portal.name + '</td>'
+		+ '<td>'
+		+ '<p class="portal_point">' + portal.point + '</p>'
+		+ '<p class="">pt</p></td></tr>'
+		+ '</table>'
+		+ '</div>'
+		+ '<div class="command">'
+		// + '<input type="button" class="heal_btn" value="heal">'
+		+ '<img src="./client/img/heal.png" class="heal_btn">'
+		+ '<img src="./client/img/hack.png" class="energy_btn">'
+		// + '<input type="button" class="energy_btn" value="energy">'
+		// + '<input type="button" class="def_btn" value="def">'
+		+ '</div>'
+		+ '<input type="hidden" class="id" value="' + portal.id + '">'
+		+ '<input type="hidden" class="weather" value="">'
+		+ '<input type="hidden" class="distance" value="0">'
+		+ '</div>');
+};
+
+bindEnemyPop = function(portal, marker) {
+	marker.bindPopup(
+		  '<div class="enemy_pop enemy_pop' + portal.id + '">'
+		+ '<div class="portal_detail">'
+		+ '<table>'
+		+ '<tr>'
+		+ '<td>' + portal.name + '</td>'
+		+ '<td>'
+		+ '<p class="portal_point">' + portal.point + '</p>'
+		+ '<p class="">pt</p></td></tr>'
+		+ '</table>'
+		+ '</div>'
+		+ '<div class="command">'
+		// + '<input type="button" class="atk_btn" value="atk">'
+		// + '<input type="button" class="detail_btn" value="detail">'
+		// + '<input type="button" class="hack_btn" value="hack">'
+		+ '<img src="./client/img/atk.png" class="atk_btn">'
+		+ '<img src="./client/img/hack.png" class="hack_btn">'
+		+ '</div>'
+		+ '<input type="hidden" class="id" value="' + portal.id + '">'
+		+ '<input type="hidden" class="weather" value="">'
+		+ '<input type="hidden" class="distance" value="0">'
+		+ '</div>');
+};
+
+changePoint = function(ele, num, callback) {
+	var point = parseInt($(ele).text());
+	var toPoint = point + (num);
+	if(num < 0 && toPoint < 0) {
+		toPoint = 0;
+	}
+	$({count: point}).animate({count: toPoint}, {
+        duration: 1000,
+        easing: 'linear',
+        progress: function() {
+        	var num = Math.ceil(this.count);
+            $(ele).text(Math.ceil(this.count)); 
+        },
+        complete: function() {
+        	if(callback) {
+        		callback();
+        	}
+        }
+    });
+};
+
+getId = function(ele, selector) {
+	return $(ele).parents(selector).eq(0).find('.id').val();
+};
+
+
+</script>
+</head>
+
+  <body>
+
+    <div class="container">
+
+      <div class="row">
+        
+        <div class="col-md-12" id="map">
+
+        </div>
+
+      </div>
+
+      <div class="row">
+
+	    <div class="row">
+	      	<div class="col-md-12" id="status">status</div>
+	    </div>
+
+        <div class="col-md-6">
+        	<div id="ally_status_bar">
+        		<div class="meter">
+					<span style="width: 65%"></span>
+				</div>
+        	</div>
+        	<div id="enemy_status_bar">
+        		<div class="meter blue">
+					<span style="width: 32%"></span>
+				</div>
+        	</div>
+        </div>
+
+        <BR>
+		<BR>
+		<BR>
+        <div class="col-md-2" id="weather_status1">
+        	<div id="user_sunny"><font size="5" face="ＭＳ ゴシック" COLOR="#FFAA00">Sunny : <p class="point">500</p></font></div>
+        	<BR>
+        	<div id="user_cloudy"><font size="5" face="ＭＳ ゴシック" COLOR="#00FFAA">Wind : <p class="point">500</p></font></div>
+        	<BR>
+        	<div id="user_rainy"><font size="5" face="ＭＳ ゴシック" COLOR="#00AAFF">Rainy : <p class="point">500</p></font></div>
+        </div>
+
+        <div class="col-md-2" id="weather_status2">
+        	<div id="user_snow"><font size="5" face="ＭＳ ゴシック"  COLOR="#DDDDDD">Snow : <p class="point">500</p></font></div>
+        	<BR>
+        	<div id="user_thunder"><font size="5" face="ＭＳ ゴシック" COLOR="#DDDD00">Thunder: <p class="point">500</p></font></div>
+        	<BR>
+        	<div id="user_satelite"><font size="5" face="ＭＳ ゴシック"><font color ="#EE5555">Special : <p class="point">999</p></font></div>        
+                </div>
+                
+        <div class="col-md-2" id="weather_status3">
+        	<p id="portal_count_title"><p style="color: #FFAA00; font-size: 28px"><I>PORTAL</I></p></p>
+        	<p id="portal_count" style="margin-top: -20px;"><p style="color: #FFAA00; font-size: 100px;"><I>9</I></p></p>
+        </div>
+
+      </div>
+
+    </div><!-- /.container -->
+
+    <img id="effect" src="./client/img/null.gif" style="position:absolute;display:none;">
+
+    <div id="score" style="position:absolute;display:none;font-weight:bold;font-size: 32px;"></div>
+
+<!--     <img id="sunny_effect" src="./client/img/sunny.gif" style="position:absolute;display:none;">
+    <img id="rainy_effect" src="./client/img/rainy.gif" height="42" width="42" style="position:absolute;display:none;"> -->
+  </body>
+</html>
